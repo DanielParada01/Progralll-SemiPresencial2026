@@ -1,1 +1,1 @@
-Este apartado es especificamente para los avances d ellas clases de programación lll
+Este apartado es especificamente para los avances de las clases de programación lll
