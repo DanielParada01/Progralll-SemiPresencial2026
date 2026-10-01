@@ -218,7 +218,23 @@
         }
 
         function limpiarFormulario() {
-            accion = 'nuevo'; idCliente = ''; frmCliente.reset();
+            accion = 'nuevo'; 
+            idCliente = ''; 
+            
+            // 1. Vaciar explícitamente los campos (textbox) del cliente
+            txtCodigoCliente.value = '';
+            txtNombreCliente.value = '';
+            txtDireccionCliente.value = '';
+            txtTelefonoCliente.value = '';
+            txtEmailCliente.value = '';
+            cboTipoPersona.value = 'particular';
+            
+            // 2. Limpiar también el panel de impuestos y memoria
+            frmImpuestos.reset();
+            impuestoMensualCalculado = 0;
+            infoCalculo.classList.add('hidden');
+            
+            // 3. Ocultar las secciones de la empresa
             seccionImpuestos.classList.add('hidden');
             seccionHistorial.classList.add('hidden');
         }
