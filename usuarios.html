@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+    <script>
+        // Si no se ha iniciado sesion, se regresa al login
+        if (!sessionStorage.getItem('usuario')) { window.location.href = '/'; }
+    </script>
+</head>
+
+<body>
+    <div class="container-fluid mt-3">
+        <div class="row mb-3">
+            <div class="col d-flex justify-content-between align-items-center">
+                <span>Sesión iniciada: <strong id="lblSesion"></strong></span>
+                <button id="btnSalir" class="btn btn-sm btn-outline-dark">Cerrar sesión</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-5">
+                <!-- FORMULARIO USUARIO -->
+                <div class="card mb-3">
+                    <div class="card-header bg-dark text-white">Datos del Usuario</div>
+                    <div class="card-body">
+                        <form id="frmUsuario">
+                            <div class="row mb-2">
+                                <div class="col"><input required maxlength="35" placeholder="Usuario" name="txtUsuario" id="txtUsuario" class="form-control" type="text"></div>
+                                <div class="col"><input required maxlength="35" placeholder="Clave" name="txtClave" id="txtClave" class="form-control" type="password"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col"><input required maxlength="85" pattern="^[A-Za-záéíóúÁÉÍÓÚñÑ ]{3,}$" placeholder="Nombre" name="txtNombre" id="txtNombre" class="form-control" type="text"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col"><input maxlength="100" placeholder="Direccion" name="txtDireccion" id="txtDireccion" class="form-control" type="text"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col"><input maxlength="9" pattern="^[0-9]{4}-[0-9]{4}$" placeholder="Telefono (0000-0000)" name="txtTelefono" id="txtTelefono" class="form-control" type="text"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col text-center">
+                                    <input type="submit" value="Guardar" class="btn btn-primary">
+                                    <input type="reset" value="Limpiar" class="btn btn-warning">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-7">
+                <!-- BUSQUEDA DE USUARIOS -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white text-center">BÚSQUEDA DE USUARIOS</div>
+                    <div class="card-body p-0">
+                        <input type="search" placeholder="buscar por usuario, nombre" id="txtBuscarUsuario" class="form-control m-2 w-auto">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover text-center">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th><th>Nombre</th><th>Direccion</th><th>Telefono</th><th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tblUsuarios"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var accion = 'nuevo', idUsuario = '', listaUsuarios = [];
+
+        lblSesion.innerText = sessionStorage.getItem('usuario');
+
+        // EVENTOS
+        frmUsuario.addEventListener('submit', (e) => { e.preventDefault(); guardarUsuarios(); });
+        frmUsuario.addEventListener('reset', (e) => { e.preventDefault(); limpiarFormulario(); });
+        txtBuscarUsuario.addEventListener('keyup', (e) => { obtenerUsuarios(txtBuscarUsuario.value); });
+        btnSalir.addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = '/'; });
+
+        document.addEventListener("DOMContentLoaded", () => obtenerUsuarios());
+
+        async function obtenerUsuarios(buscar = "") {
+            let response = await fetch(`/usuarios?buscar=${encodeURIComponent(buscar)}`);
+            let datos = await response.json();
+            mostrarDatos(datos || []);
+        }
+
+        function mostrarDatos(datos) {
+            listaUsuarios = datos;
+            let filas = "";
+            datos.forEach((e, i) => {
+                filas += `
+                    <tr onClick='seleccionarUsuario(${i}, event)' style='cursor:pointer'>
+                        <td>${e.usuario}</td>
+                        <td>${e.nombre}</td>
+                        <td>${e.direccion}</td>
+                        <td>${e.telefono}</td>
+                        <td><button onClick='eliminarUsuario(${i}, event)' class="btn btn-sm btn-danger">DEL</button></td>
+                    </tr>
+                `;
+            });
+            tblUsuarios.innerHTML = filas || '<tr><td colspan="5">No hay usuarios registrados</td></tr>';
+        }
+
+        function seleccionarUsuario(posicion, event) {
+            if (event) event.preventDefault();
+            let data = listaUsuarios[posicion];
+            idUsuario = data.idUsuario;
+            accion = "modificar";
+
+            txtUsuario.value = data.usuario;
+            txtClave.value = data.clave;
+            txtNombre.value = data.nombre;
+            txtDireccion.value = data.direccion;
+            txtTelefono.value = data.telefono;
+        }
+
+        function eliminarUsuario(posicion, event) {
+            event.stopPropagation();
+            let data = listaUsuarios[posicion];
+            if (confirm(`¿Seguro de eliminar al usuario: ${data.usuario}?`)) {
+                idUsuario = data.idUsuario;
+                accion = "eliminar";
+                guardarUsuarios();
+            }
+        }
+
+        async function guardarUsuarios() {
+            let datos = {
+                usuario: txtUsuario.value, clave: txtClave.value, nombre: txtNombre.value,
+                direccion: txtDireccion.value, telefono: txtTelefono.value, accion, idUsuario
+            };
+            let response = await fetch('/usuario', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+            });
+            let respuesta = await response.json();
+            if (respuesta.msg != "ok") { alert("Error: " + respuesta.msg); return; }
+            obtenerUsuarios(txtBuscarUsuario.value);
+            limpiarFormulario();
+        }
+
+        function limpiarFormulario() {
+            accion = 'nuevo';
+            idUsuario = '';
+
+            txtUsuario.value = '';
+            txtClave.value = '';
+            txtNombre.value = '';
+            txtDireccion.value = '';
+            txtTelefono.value = '';
+        }
+    </script>
+</body>
+
+</html>
